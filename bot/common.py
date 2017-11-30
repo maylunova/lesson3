@@ -1,3 +1,7 @@
+'''
+Файл для общих констант
+'''
+
 GREETING = 'Call the /planet command and find out in which constellations are the planets today! \
         \n\nCall the /wordcount command to find out how many words in your text! \
         \n\nCall the /calculator command to calculate something! \
