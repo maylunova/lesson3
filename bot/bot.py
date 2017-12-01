@@ -3,6 +3,8 @@
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
 
+import config
+
 import common
 import astronomy
 import wordcount
@@ -44,13 +46,13 @@ COMMAND_REGISTRY = {
 
 
 class ModeChooser(object):
-    def __init__(self, command_name)
+    def __init__(self, command_name):
         self.command_name = command_name
 
-    def do(self, update, user_data):
+    def do(self, bot, update, user_data):
         # обработчик
         update.message.reply_text(COMMAND_REGISTRY[self.command_name]['greeting'])        
-        user_data['mode'] = command_name
+        user_data['mode'] = self.command_name
 
 
 def text(bot, update, user_data):
@@ -74,7 +76,7 @@ def exit(bot, update, user_data):
     update.message.reply_text(common.GREETING)
 
 def main():
-    updater = Updater('467895224:AAF110ARNylzxt_CVZkcp3rAbdtSktjBquM')
+    updater = Updater(config.TOKEN)
     dp = updater.dispatcher
 
     for command_name in COMMAND_REGISTRY:
