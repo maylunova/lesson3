@@ -7,6 +7,7 @@ import common
 import astronomy
 import wordcount
 import calculator
+import goroda
 
 logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG,
@@ -31,9 +32,15 @@ COMMAND_REGISTRY = {
         'action': astronomy.next_full_moon
     },
     'calculator': {
-        'greeting': 'Send me an arithmetic expression in the format: a+b=', 
+        'greeting': "You can use '+', '-', '*', '/'. \nSend me an arithmetic expression or ask me: What is the value of two plus/minus/multiplied by/divided by three?", 
         'action': calculator.calculate
     },
+    'goroda': {
+        'greeting': 'Поиграем в города. Ты начинаешь!',
+        'action': goroda.goroda
+
+    }
+    
 }
 
 
@@ -44,6 +51,7 @@ def command_factory(name):
     def command(bot, update, user_data):
         # Обработка всех входящих команд
         update.message.reply_text(COMMAND_REGISTRY[name]['greeting'])
+        
         user_data['mode'] = name
     return command
 
@@ -63,7 +71,8 @@ def text(bot, update, user_data):
     action(bot, update, user_data)
 
 def exit(bot, update, user_data):
-    user_data['mode'] = None
+    # user_data['mode'] = None, но очищаем вообще весь словарь
+    user_data.clear()
     update.message.reply_text(common.GREETING)
 
 def main():
