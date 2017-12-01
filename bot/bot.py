@@ -38,25 +38,23 @@ COMMAND_REGISTRY = {
     'goroda': {
         'greeting': 'Поиграем в города. Ты начинаешь!',
         'action': goroda.goroda
-
     }
     
 }
 
 
-def command_factory(name):        
-    '''
-    Функция "фабрика", создающая функции обработчики для каждой команды с именем "name"
-    '''
-    def command(bot, update, user_data):
-        # Обработка всех входящих команд
-        update.message.reply_text(COMMAND_REGISTRY[name]['greeting'])
-        
-        user_data['mode'] = name
-    return command
+class ModeChooser(object):
+    def __init__(self, command_name)
+        self.command_name = command_name
+
+    def do(self, update, user_data):
+        # обработчик
+        update.message.reply_text(COMMAND_REGISTRY[self.command_name]['greeting'])        
+        user_data['mode'] = command_name
+
 
 def text(bot, update, user_data):
-    # Обработка входящего текста (роутер)
+    # Обработка входящего текста (маршрутизатор)
     mode = user_data.get('mode', None) 
     
     if mode is None:
@@ -77,15 +75,14 @@ def exit(bot, update, user_data):
 
 def main():
     updater = Updater('467895224:AAF110ARNylzxt_CVZkcp3rAbdtSktjBquM')
-
     dp = updater.dispatcher
+
     for command_name in COMMAND_REGISTRY:
-        '''
-        command_factory(command_name) - реагировать результатом вызова функции command_factory 
-        (а результат вызова - это функция command, вложенная в command_factory)
-        '''
-        action = command_factory(command_name) 
-        dp.add_handler(CommandHandler(command_name, action, pass_user_data=True))
+        # создаем объект класса Action для command_name, чтобы сохранить command_name для вызова обработчика action.do,
+        # потому что handler общий для всех команд
+        chooser = ModeChooser(command_name)
+        dp.add_handler(CommandHandler(command_name, chooser.do, pass_user_data=True))
+
     dp.add_handler(CommandHandler('exit', exit, pass_user_data=True))
     dp.add_handler(MessageHandler(Filters.text, text, pass_user_data=True))
 
