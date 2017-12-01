@@ -13,9 +13,49 @@
 '''
 
 import re
+import logging
 
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+
+KEYBOARD = [
+    ['7', '8', '9', '*'],
+    ['4', '5', '6', '/'],
+    ['1', '2', '3', '-'],
+    ['0', '.', '=', '+']
+]
+
+KEYBOARD_MARKUP = InlineKeyboardMarkup([[InlineKeyboardButton(b, callback_data=b) for b in row] for row in KEYBOARD])
 
 PATTERN = re.compile(r'\s*(\d*\s*\.{0,1}\s*\d*)\s*([+\-*\/])\s*(\d*\s*\.{0,1}\s*\d*)\s*[=]{0,1}[?]{0,1}\s*')
+
+
+def do_calculate(user_text):
+    match = re.search(PATTERN, user_text)
+    
+    if match is None:
+        raise ValueError('Incorrect input!')
+    
+    groups = match.groups()
+    first_num_str = re.sub('\s*', '', groups[0]) 
+    second_num_str = re.sub('\s*', '', groups[2]) 
+
+
+    if len(first_num_str) == 0 or len(second_num_str) == 0:
+        raise ValueError('Incorrect input!')
+
+    first_num = float(first_num_str)
+    second_num = float(second_num_str)
+    action = groups[1]
+
+    if action == '+':
+        return first_num + second_num        
+    if action == '-':
+        return first_num - second_num
+    if action == '*':
+        return first_num * second_num
+    if action == '/':
+        return first_num / second_num
 
     
 def calculate(bot, update, user_data):
@@ -45,34 +85,50 @@ def calculate(bot, update, user_data):
     for k in translation:
         user_text = user_text.replace(k, translation[k])
 
-    match = re.search(PATTERN, user_text)
-    
-    if match is None:
+    try:
+        result = do_calculate(user_text)
+        update.message.reply_text(str(result))
+    except ValueError:
         update.message.reply_text('Incorrect input!')
-        return
-    
-    groups = match.groups()
-    first_num_str = re.sub('\s*', '', groups[0]) 
-    second_num_str = re.sub('\s*', '', groups[2]) 
+    except ZeroDivisionError:
+        update.message.reply_text('Division by zero!')
 
 
-    if len(first_num_str) == 0 or len(second_num_str) == 0:
-        update.message.reply_text('Incorrect input!')
-        return
+def calculate_keyboard(bot, update, user_data):    
+    expression = user_data.get('calc_expression', '')
+    button = update.callback_query.data
+    logging.info("Button pressed: {}".format(button,))
 
-    first_num = float(first_num_str)
-    second_num = float(second_num_str)
-    action = groups[1]
-
-    if action == '+':
-        update.message.reply_text(str(first_num + second_num))
-    if action == '-':
-        update.message.reply_text(str(first_num - second_num))
-    if action == '*':
-        update.message.reply_text(str(first_num * second_num))
-    if action == '/':
+    # если нажали = то вычисляем сохраненное выражение и очищаем сообщение бота Current expression
+    if button == '=':
         try:
-            update.message.reply_text(str(first_num / second_num))
+            result = do_calculate(expression)
+            update.callback_query.message.reply_text(str(result))
+        except ValueError:
+            update.callback_query.message.reply_text('Incorrect input!')
         except ZeroDivisionError:
-            update.message.reply_text('Division by zero!')
+            update.callback_query.message.reply_text('Division by zero!')
+
+        bot.edit_message_text(
+            chat_id=update.callback_query.message.chat_id,
+            message_id=update.callback_query.message.message_id,
+            text="Current expression:",
+            reply_markup=KEYBOARD_MARKUP
+        )   
+        user_data['calc_expression'] = ''    
+        return
+
+    # добавляем к сохраненному выражению нажатую кнопку
+    expression += button
+    user_data['calc_expression'] = expression
+
+    # редактируем сообщение бота, чтобы вывести текущее выражение
+    bot.edit_message_text(
+        chat_id=update.callback_query.message.chat_id,
+        message_id=update.callback_query.message.message_id,
+        text="Current expression: {}".format(expression,),
+         reply_markup=KEYBOARD_MARKUP
+    )
+
+
 

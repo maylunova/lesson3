@@ -1,6 +1,6 @@
 # telegram bot
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 import logging
 
 import common
@@ -10,8 +10,8 @@ import calculator
 import goroda
 
 logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG,
-                    filename='bot.log')
+                    level=logging.DEBUG)
+                    # filename='bot.log')
 
 
 COMMAND_REGISTRY = {
@@ -33,24 +33,26 @@ COMMAND_REGISTRY = {
     },
     'calculator': {
         'greeting': "You can use '+', '-', '*', '/'. \nSend me an arithmetic expression or ask me: What is the value of two plus/minus/multiplied by/divided by three?", 
-        'action': calculator.calculate
+        'action': calculator.calculate,
+        'keyboard': calculator.KEYBOARD_MARKUP,
     },
     'goroda': {
         'greeting': 'Поиграем в города. Ты начинаешь!',
         'action': goroda.goroda
     }
-    
 }
 
 
 class ModeChooser(object):
-    def __init__(self, command_name)
+    def __init__(self, command_name):
         self.command_name = command_name
 
-    def do(self, update, user_data):
+    def do(self, bot, update, user_data):
+        logging.info('Command {} entered'.format(self.command_name,))
         # обработчик
-        update.message.reply_text(COMMAND_REGISTRY[self.command_name]['greeting'])        
-        user_data['mode'] = command_name
+        keyboard = COMMAND_REGISTRY[self.command_name].get('keyboard', None)
+        update.message.reply_text(COMMAND_REGISTRY[self.command_name]['greeting'], reply_markup=keyboard)        
+        user_data['mode'] = self.command_name
 
 
 def text(bot, update, user_data):
@@ -68,7 +70,15 @@ def text(bot, update, user_data):
 
     action(bot, update, user_data)
 
-def exit(bot, update, user_data):
+
+def keyboard_action(bot, update, user_data):
+    logging.info('Keyboard action')
+    mode = user_data.get('mode', None)    
+    if mode == 'calculator':
+        calculator.calculate_keyboard(bot, update, user_data)
+
+
+def exit(bot, update, user_data):    
     # user_data['mode'] = None, но очищаем вообще весь словарь
     user_data.clear()
     update.message.reply_text(common.GREETING)
@@ -85,6 +95,7 @@ def main():
 
     dp.add_handler(CommandHandler('exit', exit, pass_user_data=True))
     dp.add_handler(MessageHandler(Filters.text, text, pass_user_data=True))
+    dp.add_handler(CallbackQueryHandler(keyboard_action, pass_user_data=True))
 
     updater.start_polling()
     updater.idle()
